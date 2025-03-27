@@ -1,22 +1,19 @@
 import feedparser
-import re
-import pandas as pd
+import sqlite3
 import streamlit as st
 import folium
 from streamlit_folium import folium_static
-from textblob import TextBlob
-import sqlite3
 from geopy.geocoders import Nominatim
 
 # 🌍 Geolocation setup
 geolocator = Nominatim(user_agent="geoapi")
 
-# 📊 Database Setup (using /tmp/ for Streamlit Cloud)
+# 📊 Database Setup (use /tmp/ for Streamlit Cloud)
 DB_PATH = "/tmp/disaster_alerts.db"
 conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 cursor = conn.cursor()
 
-# 🏗️ Ensure the database table exists
+# 🏗️ Create Table if Not Exists
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS alerts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,42 +24,38 @@ cursor.execute("""
 """)
 conn.commit()
 
-# 📰 **RSS Feed URLs**
+# 📰 RSS Feed URLs
 GDACS_FEED_URL = "https://www.gdacs.org/xml/rss.xml"
 USGS_FEED_URL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.atom"
 
-# 🔍 **Function to Extract Location**
+# 🔍 Function to Extract Location
 def extract_location(alert):
-    location = None
     try:
         loc = geolocator.geocode(alert)
-        if loc:
-            location = (loc.latitude, loc.longitude)
+        return (loc.latitude, loc.longitude) if loc else None
     except:
-        pass
-    return location
+        return None
 
-# 📡 **Function to Fetch Alerts from GDACS & USGS**
+# 📡 Function to Fetch Alerts
 def fetch_alerts():
     alerts = []
 
-    # 🛑 Debug log: Check if feeds are accessible
-    st.write("📡 Fetching alerts from GDACS & USGS...")
-
-    # Fetch GDACS alerts
+    # 🛑 Debug: Fetch GDACS Alerts
+    st.write("📡 Fetching GDACS alerts...")
     gdacs_feed = feedparser.parse(GDACS_FEED_URL)
     if not gdacs_feed.entries:
-        st.error("⚠️ No alerts found in GDACS feed!")
+        st.error("⚠️ GDACS feed is empty!")
 
     for entry in gdacs_feed.entries:
         alert_text = f"🌍 {entry.title} - {entry.summary}"
         location = extract_location(entry.title)
         alerts.append((alert_text, location))
 
-    # Fetch USGS Earthquake alerts
+    # 🛑 Debug: Fetch USGS Alerts
+    st.write("📡 Fetching USGS alerts...")
     usgs_feed = feedparser.parse(USGS_FEED_URL)
     if not usgs_feed.entries:
-        st.error("⚠️ No alerts found in USGS feed!")
+        st.error("⚠️ USGS feed is empty!")
 
     for entry in usgs_feed.entries:
         alert_text = f"🌍 {entry.title} - {entry.summary}"
@@ -71,7 +64,7 @@ def fetch_alerts():
 
     return alerts
 
-# 🔍 **Function to Analyze and Store Alerts**
+# 🔍 Function to Analyze & Store Alerts
 def analyze_and_store_alerts(alerts):
     new_alerts = []
     for alert, location in alerts:
@@ -82,10 +75,9 @@ def analyze_and_store_alerts(alerts):
             new_alerts.append((alert, location))
         except sqlite3.OperationalError as e:
             st.error(f"Database error: {e}")
-
     return new_alerts
 
-# 🎨 **Streamlit UI**
+# 🎨 Streamlit UI
 st.title("🚨 AI-Powered Disaster Alert System")
 
 # 🌍 **Map Display**
