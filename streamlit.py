@@ -14,17 +14,11 @@ import geopy
 from geopy.geocoders import Nominatim
 from plyer import notification
 
-# Twitter API credentials (Replace with your credentials)
-consumer_key = "q3zuTRCZNcXNSXdvtGiH339K1"
-consumer_secret = "zvL9T9u2fm4tV06qXhhE4cv9mUhGR6t9iaC6RGYtRNvKldP2Ba"
-access_token = "1905144950834257920-CAT9w1JsNfN6cVcwXmegVErpDTBoNS"
-access_token_secret = "mG2Skw4oSTZhP2MmcIExqJMMthqluLdC7O4NInCBvQeR2"
+# Twitter API credentials (Use Bearer Token for OAuth 2.0)
+bearer_token = "AAAAAAAAAAAAAAAAAAAAANjV0AEAAAAAXzpxga6kWO5L9oOTSCWC6Lww2O4%3DIK3fw2I3FMJ9dyfpnRd9xHBPjXMQccHglvPndLRVphzabwcPJW"
 
-# Authenticate with Twitter API
-auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-auth.set_access_token(access_token, access_token_secret)
-api = tweepy.API(auth, wait_on_rate_limit=True, timeout=30)
-
+# Authenticate with Twitter API using OAuth 2.0
+client = tweepy.Client(bearer_token=bearer_token)
 # Geolocation setup
 geolocator = Nominatim(user_agent="geoapi")
 
