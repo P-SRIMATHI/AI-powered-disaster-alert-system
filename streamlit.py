@@ -1,10 +1,5 @@
 import tweepy
 import tweepy
-
-# Check rate limits
-rate_limit_status = client.get_rate_limit_status()
-print(rate_limit_status)
-
 import re
 import pandas as pd
 import streamlit as st
@@ -19,6 +14,12 @@ import sqlite3
 import geopy
 from geopy.geocoders import Nominatim
 from plyer import notification
+import tweepy
+
+# Check rate limits
+rate_limit_status = client.get_rate_limit_status()
+print(rate_limit_status)
+
 
 # Twitter API credentials (Use Bearer Token for OAuth 2.0)
 bearer_token = "AAAAAAAAAAAAAAAAAAAAANjV0AEAAAAAXzpxga6kWO5L9oOTSCWC6Lww2O4%3DIK3fw2I3FMJ9dyfpnRd9xHBPjXMQccHglvPndLRVphzabwcPJW"
