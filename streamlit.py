@@ -1,32 +1,25 @@
-import tweepy
-import tweepy
+import feedparser
 import re
 import pandas as pd
 import streamlit as st
 import folium
-from streamlit_folium import st_folium
+from streamlit_folium import folium_static
 from textblob import TextBlob
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 import joblib
 import sqlite3
-import geopy
 from geopy.geocoders import Nominatim
 from plyer import notification
-import tweepy
 
-# Twitter API credentials (Use Bearer Token for OAuth 2.0)
-bearer_token = "AAAAAAAAAAAAAAAAAAAAANjV0AEAAAAAXzpxga6kWO5L9oOTSCWC6Lww2O4%3DIK3fw2I3FMJ9dyfpnRd9xHBPjXMQccHglvPndLRVphzabwcPJW"
-
-# Authenticate with Twitter API using OAuth 2.0
-client = tweepy.Client(bearer_token=bearer_token)
 # Geolocation setup
 geolocator = Nominatim(user_agent="geoapi")
 
-def extract_location(tweet):
+def extract_location(text):
+    """Extracts location from disaster alert title (if possible)."""
     location = None
-    words = tweet.split()
+    words = text.split()
     for word in words:
         try:
             loc = geolocator.geocode(word)
@@ -37,28 +30,34 @@ def extract_location(tweet):
             continue
     return location
 
-# Function to clean tweets
+# Function to clean text
 def clean_text(text):
     text = re.sub(r'http\S+', '', text)  # Remove URLs
     text = re.sub(r'[^a-zA-Z\s]', '', text)  # Remove special characters
     text = text.lower()  # Convert to lowercase
     return text
 
-def fetch_tweets(keyword="earthquake OR flood OR wildfire", count=100):
-    try:
-        # Use Twitter API v2 method
-        response = client.search_recent_tweets(query=keyword, max_results=count, tweet_fields=["text"])
-        time.sleep(5)
-        
-        if response.data:
-            tweet_list = [(clean_text(tweet.text), extract_location(tweet.text)) for tweet in response.data]
-            return tweet_list
-        else:
-            return []
-    except tweepy.TweepyException as e:
-        st.error(f"⚠️ Error fetching tweets: {e}")
-        return []
+# Fetch Disaster Alerts from GDACS (Global Disaster Alert System)
+def fetch_gdacs_alerts():
+    url = "https://www.gdacs.org/rss.aspx"
+    feed = feedparser.parse(url)
 
+    alerts = []
+    for entry in feed.entries[:5]:  # Get latest 5 alerts
+        alerts.append((clean_text(entry.title), extract_location(entry.title)))
+    
+    return alerts
+
+# Fetch Earthquake Alerts from USGS (United States Geological Survey)
+def fetch_usgs_earthquakes():
+    url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_hour.atom"
+    feed = feedparser.parse(url)
+
+    earthquakes = []
+    for entry in feed.entries[:5]:  # Get latest 5 earthquakes
+        earthquakes.append((clean_text(entry.title), extract_location(entry.title)))
+    
+    return earthquakes
 
 # Load training dataset (Replace with actual dataset)
 data = pd.read_csv("disaster_tweets.csv")
@@ -80,7 +79,7 @@ cursor = conn.cursor()
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS alerts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tweet TEXT,
+        alert TEXT,
         latitude REAL,
         longitude REAL
     )
@@ -88,17 +87,19 @@ cursor.execute("""
 conn.commit()
 
 # Sentiment Analysis + ML Model Classification
-def analyze_tweets(tweets):
+def analyze_alerts(alerts):
     disaster_alerts = []
     model = joblib.load("disaster_model.pkl")
     
-    for tweet, location in tweets:
-        prediction = model.predict([tweet])[0]
-        sentiment = TextBlob(tweet).sentiment.polarity
+    for alert, location in alerts:
+        prediction = model.predict([alert])[0]
+        sentiment = TextBlob(alert).sentiment.polarity
         if prediction == 1 or sentiment < -0.2:  # If model or sentiment indicates disaster
-            disaster_alerts.append((tweet, location))
-            cursor.execute("INSERT INTO alerts (tweet, latitude, longitude) VALUES (?, ?, ?)", (tweet, location[0] if location else None, location[1] if location else None))
-            notification.notify(title="🚨 Disaster Alert!", message=tweet, timeout=5)
+            disaster_alerts.append((alert, location))
+            cursor.execute("INSERT INTO alerts (alert, latitude, longitude) VALUES (?, ?, ?)", 
+                           (alert, location[0] if location else None, location[1] if location else None))
+            notification.notify(title="🚨 Disaster Alert!", message=alert, timeout=5)
+    
     conn.commit()
     return disaster_alerts
 
@@ -112,24 +113,39 @@ locations = cursor.fetchall()
 for lat, lon in locations:
     if lat and lon:
         folium.Marker([lat, lon], popup="Disaster Alert").add_to(disaster_map)
-st_folium(disaster_map)
+folium_static(disaster_map)
 
-
-if st.button("Fetch Latest Disaster Tweets"):
-    tweets = fetch_tweets()
-    disaster_tweets = analyze_tweets(tweets)
-    if disaster_tweets:
-        st.write("### 🚨 Emergency Alerts from Social Media:")
-        for tweet, location in disaster_tweets:
+# Fetch and display GDACS alerts
+if st.button("Fetch GDACS Alerts"):
+    gdacs_alerts = fetch_gdacs_alerts()
+    disaster_alerts = analyze_alerts(gdacs_alerts)
+    
+    if disaster_alerts:
+        st.write("### 🚨 Emergency Alerts from GDACS:")
+        for alert, location in disaster_alerts:
             loc_text = f" (Location: {location})" if location else " (Location: Unknown)"
-            st.write(f"- {tweet}{loc_text}")
+            st.write(f"- {alert}{loc_text}")
     else:
-        st.write("✅ No major disaster-related alerts detected.")
+        st.write("✅ No major disaster alerts from GDACS.")
+
+# Fetch and display USGS earthquake alerts
+if st.button("Fetch USGS Earthquake Data"):
+    usgs_earthquakes = fetch_usgs_earthquakes()
+    disaster_alerts = analyze_alerts(usgs_earthquakes)
+    
+    if disaster_alerts:
+        st.write("### 🌍 Significant Earthquakes from USGS:")
+        for alert, location in disaster_alerts:
+            loc_text = f" (Location: {location})" if location else " (Location: Unknown)"
+            st.write(f"- {alert}{loc_text}")
+    else:
+        st.write("✅ No significant earthquakes reported by USGS.")
 
 # Display stored alerts
 if st.button("View Past Alerts"):
-    cursor.execute("SELECT tweet, latitude, longitude FROM alerts")
+    cursor.execute("SELECT alert, latitude, longitude FROM alerts")
     past_alerts = cursor.fetchall()
+    
     if past_alerts:
         st.write("### 🕒 Historical Disaster Alerts:")
         for alert in past_alerts:
