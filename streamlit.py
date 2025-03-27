@@ -42,11 +42,20 @@ def clean_text(text):
     text = text.lower()  # Convert to lowercase
     return text
 
-# Fetch real-time disaster-related tweets
 def fetch_tweets(keyword="earthquake OR flood OR wildfire", count=100):
-    tweets = api.search_tweets(q=keyword, lang="en", count=count)
-    tweet_list = [(clean_text(tweet.text), extract_location(tweet.text)) for tweet in tweets]
-    return tweet_list
+    try:
+        # Use Twitter API v2 method
+        response = client.search_recent_tweets(query=keyword, max_results=count, tweet_fields=["text"])
+        
+        if response.data:
+            tweet_list = [(clean_text(tweet.text), extract_location(tweet.text)) for tweet in response.data]
+            return tweet_list
+        else:
+            return []
+    except tweepy.TweepyException as e:
+        st.error(f"⚠️ Error fetching tweets: {e}")
+        return []
+
 
 # Load training dataset (Replace with actual dataset)
 data = pd.read_csv("disaster_tweets.csv")
