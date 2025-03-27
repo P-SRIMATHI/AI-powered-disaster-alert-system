@@ -46,6 +46,7 @@ def fetch_tweets(keyword="earthquake OR flood OR wildfire", count=100):
     try:
         # Use Twitter API v2 method
         response = client.search_recent_tweets(query=keyword, max_results=count, tweet_fields=["text"])
+        time.sleep(5)
         
         if response.data:
             tweet_list = [(clean_text(tweet.text), extract_location(tweet.text)) for tweet in response.data]
