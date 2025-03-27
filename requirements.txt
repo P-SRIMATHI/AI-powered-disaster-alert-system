@@ -6,7 +6,6 @@ streamlit-folium
 textblob
 scikit-learn
 joblib
-sqlite3
 geopy
 plyer
 spacy
