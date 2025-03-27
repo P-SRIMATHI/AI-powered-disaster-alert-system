@@ -15,8 +15,8 @@ from geopy.geocoders import Nominatim
 from plyer import notification
 
 # Twitter API credentials (Replace with your credentials)
-consumer_key = "YOUR_CONSUMER_KEY"
-consumer_secret = "YOUR_CONSUMER_SECRET"
+consumer_key = "q3zuTRCZNcXNSXdvtGiH339K1"
+consumer_secret = "zvL9T9u2fm4tV06qXhhE4cv9mUhGR6t9iaC6RGYtRNvKldP2Ba"
 access_token = "YOUR_ACCESS_TOKEN"
 access_token_secret = "YOUR_ACCESS_SECRET"
 
