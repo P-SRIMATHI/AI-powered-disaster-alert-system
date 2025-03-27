@@ -7,6 +7,5 @@ scikit-learn
 pandas
 numpy
 joblib
-sqlite3
 geopy
 plyer
