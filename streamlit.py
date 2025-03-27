@@ -23,7 +23,7 @@ access_token_secret = "mG2Skw4oSTZhP2MmcIExqJMMthqluLdC7O4NInCBvQeR2"
 # Authenticate with Twitter API
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
-api = tweepy.API(auth)
+api = tweepy.API(auth, wait_on_rate_limit=True, timeout=30)
 
 # Geolocation setup
 geolocator = Nominatim(user_agent="geoapi")
