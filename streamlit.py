@@ -1,4 +1,10 @@
 import tweepy
+import tweepy
+
+# Check rate limits
+rate_limit_status = client.get_rate_limit_status()
+print(rate_limit_status)
+
 import re
 import pandas as pd
 import streamlit as st
