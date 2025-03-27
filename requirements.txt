@@ -1,0 +1,16 @@
+tweepy
+pandas
+streamlit
+folium
+streamlit-folium
+textblob
+scikit-learn
+joblib
+sqlite3
+geopy
+plyer
+spacy
+tensorflow
+numpy
+matplotlib
+seaborn
