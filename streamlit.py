@@ -106,7 +106,8 @@ locations = cursor.fetchall()
 for lat, lon in locations:
     if lat and lon:
         folium.Marker([lat, lon], popup="Disaster Alert").add_to(disaster_map)
-folium_static(disaster_map)
+st_folium(disaster_map)
+
 
 if st.button("Fetch Latest Disaster Tweets"):
     tweets = fetch_tweets()
